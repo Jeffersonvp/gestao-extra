@@ -1,0 +1,25 @@
+{
+  "seq": {
+    "entries": 2,
+    "vacations": 2
+  },
+  "entries": [
+    {
+      "id": 1,
+      "name": "processadora",
+      "reason": "teste",
+      "type": "extra",
+      "date": "2025-10-07T15:21:29.464Z",
+      "hours": 1
+    }
+  ],
+  "vacations": [
+    {
+      "id": 1,
+      "name": "jeff",
+      "startDate": "2025-10-07T15:21:29.464Z",
+      "endDate": "2025-10-07T15:21:29.464Z",
+      "notes": "a"
+    }
+  ]
+}

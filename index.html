@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-br" ng-app="gestaoApp">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gestão de Horas Extra</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    />
+    <style>
+      body { background: #f6f8fb; }
+      .card { box-shadow: 0 6px 18px rgba(16,24,40,.06); border: 0; }
+      .form-label .required { color: #dc3545; }
+      .table > :not(caption) > * > * { vertical-align: middle; }
+      .cursor-pointer { cursor: pointer; }
+      .table-sticky thead th { position: sticky; top: 0; z-index: 1; background: #f8f9fa; }
+      .avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 600; color: #2c3e50; background: #e9f2ff; }
+      .avatar-sm { width: 28px; height: 28px; font-size: 12px; }
+    </style>
+  </head>
+  <body ng-controller="OvertimeController as vm" class="py-4">
+    <div class="container">
+      <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-stopwatch fs-2 text-primary me-2"></i>
+        <div>
+          <h2 class="mb-0">Gestão de Horas Extra</h2>
+          <small class="text-secondary">Registre horas extra por funcionário e acompanhe os lançamentos</small>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <!-- Form Card -->
+        <div class="col-12 col-lg-5">
+          <div class="card">
+            <div class="card-header bg-white">
+              <strong>Registrar Horas Extra</strong>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-success py-2 mb-3" role="alert" ng-show="added">
+                <i class="bi bi-check-circle me-1"></i>
+                Registro adicionado com sucesso
+              </div>
+
+              <form name="overtimeForm" novalidate ng-submit="addEntry(overtimeForm)">
+                <div class="mb-3">
+                  <label class="form-label">Nome do Funcionário <span class="required">*</span></label>
+                  <select
+                    class="form-select"
+                    name="name"
+                    ng-model="entry.name"
+                    ng-class="{ 'is-invalid': overtimeForm.$submitted && overtimeForm.name.$invalid }"
+                    required
+                  >
+                    <option value="" disabled selected>Selecione...</option>
+                    <option value="JEFFERSON">JEFFERSON</option>
+                    <option value="NELITON">NELITON</option>
+                    <option value="PATRICK">PATRICK</option>
+                  </select>
+                  <div class="invalid-feedback">Selecione o funcionário.</div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Motivo <span class="required">*</span></label>
+                  <textarea
+                    class="form-control"
+                    name="reason"
+                    placeholder="Ex.: Entrega de projeto, plantão, demanda urgente ..."
+                    rows="2"
+                    ng-model="entry.reason"
+                    ng-class="{ 'is-invalid': overtimeForm.$submitted && overtimeForm.reason.$invalid }"
+                    required
+                  ></textarea>
+                  <div class="invalid-feedback">Descreva o motivo.</div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Tipo de Lançamento <span class="required">*</span></label>
+                  <select
+                    class="form-select"
+                    name="type"
+                    ng-model="entry.type"
+                    ng-class="{ 'is-invalid': overtimeForm.$submitted && overtimeForm.type.$invalid }"
+                    required
+                  >
+                    <option value="extra">Extra</option>
+                    <option value="desconto">Desconto</option>
+                  </select>
+                  <div class="invalid-feedback">Selecione o tipo do lançamento.</div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-12 col-sm-6">
+                    <label class="form-label">Data <span class="required">*</span></label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      name="date"
+                      ng-model="entry.date"
+                      ng-class="{ 'is-invalid': overtimeForm.$submitted && overtimeForm.date.$invalid }"
+                      required
+                    />
+                    <div class="invalid-feedback">Selecione a data.</div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <label class="form-label">Horas <span class="required">*</span></label>
+                    <div class="input-group">
+                      <input
+                        type="number"
+                        class="form-control"
+                        name="hours"
+                        placeholder="Ex.: 2, 1.5"
+                        ng-model="entry.hours"
+                        ng-class="{ 'is-invalid': overtimeForm.$submitted && overtimeForm.hours.$invalid }"
+                        min="0.25"
+                        step="0.25"
+                        required
+                      />
+                      <span class="input-group-text">h</span>
+                      <div class="invalid-feedback">Informe as horas (mín. 0,25h).</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Adicionar
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" ng-click="resetForm(overtimeForm)">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Limpar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="col-12 col-lg-7">
+          <div class="card h-100">
+            <div class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <strong>Registros</strong>
+                <span class="badge text-bg-primary">Total: {{ totalHours() | number:2 }} h</span>
+              </div>
+              <div class="d-flex flex-wrap gap-2 ms-auto">
+                <select class="form-select form-select-sm" style="min-width: 200px;" ng-model="selectedEmployee">
+                  <option value="">Todos os funcionários</option>
+                  <option ng-repeat="name in employees track by name" value="{{ name }}">{{ name }}</option>
+                </select>
+                <div class="input-group input-group-sm" style="min-width: 240px;">
+                  <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                  <input type="text" class="form-control" placeholder="Buscar..." ng-model="searchTerm" />
+                </div>
+                <button type="button" class="btn btn-sm btn-success" ng-click="exportEntriesXlsx()">
+                  <i class="bi bi-file-earmark-excel me-1"></i> Exportar XLSX
+                </button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle table-sm table-nowrap table-sticky mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="cursor-pointer" ng-click="setSort('name')">
+                        Funcionário
+                        <i class="bi" ng-class="{ 'bi-caret-down': sortKey==='name' && !reverse, 'bi-caret-up': sortKey==='name' && reverse }"></i>
+                      </th>
+                      <th>Motivo</th>
+                      <th class="cursor-pointer" ng-click="setSort('date')">
+                        Data
+                        <i class="bi" ng-class="{ 'bi-caret-down': sortKey==='date' && !reverse, 'bi-caret-up': sortKey==='date' && reverse }"></i>
+                      </th>
+                      <th class="cursor-pointer text-end" ng-click="setSort('hours')" style="width: 120px;">
+                        Horas
+                        <i class="bi" ng-class="{ 'bi-caret-down': sortKey==='hours' && !reverse, 'bi-caret-up': sortKey==='hours' && reverse }"></i>
+                      </th>
+                      <th style="width: 56px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-if="(entries || []).length === 0">
+                      <td colspan="5" class="text-center text-secondary py-4">Sem registros até o momento</td>
+                    </tr>
+                    <tr ng-repeat="item in entries | filter:searchTerm | filter:employeeFilter | orderBy:sortExpression:reverse track by $index">
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="avatar avatar-sm">{{ getInitials(item.name) }}</div>
+                          <span class="fw-medium">{{ item.name }}</span>
+                        </div>
+                      </td>
+                      <td class="text-truncate" style="max-width: 260px;" title="{{ item.reason }}">{{ item.reason }}</td>
+                      <td>{{ item.date | date:'dd/MM/yyyy' }}</td>
+                      <td class="text-end">
+                        <span class="badge rounded-pill" ng-class="{ 'text-bg-success': item.hours > 0, 'text-bg-danger': item.hours < 0, 'text-bg-secondary': item.hours === 0 }">
+                          {{ formatSignedHours(item.hours) }} h
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <button class="btn btn-sm btn-outline-danger" title="Remover" ng-click="deleteEntry(item)">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4" />
+
+      <div class="d-flex align-items-center mb-3">
+        <i class="bi bi-calendar2-week fs-5 text-primary me-2"></i>
+        <div>
+          <h5 class="mb-0">Gestão de Férias</h5>
+          <small class="text-secondary">Agende férias e visualize próximas férias com base na data atual</small>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <!-- Férias Form -->
+        <div class="col-12 col-lg-5">
+          <div class="card">
+            <div class="card-header bg-white">
+              <strong>Agendar Férias</strong>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-success py-2 mb-3" role="alert" ng-show="vacAdded">
+                <i class="bi bi-check-circle me-1"></i>
+                Férias agendadas com sucesso
+              </div>
+
+              <form name="vacationForm" novalidate ng-submit="addVacation(vacationForm)">
+                <div class="mb-3">
+                  <label class="form-label">Nome do Funcionário <span class="required">*</span></label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="vac_name"
+                    placeholder="Ex.: Jefferson"
+                    ng-model="vacation.name"
+                    ng-class="{ 'is-invalid': vacationForm.$submitted && vacationForm.vac_name.$invalid }"
+                    required
+                    minlength="2"
+                  />
+                  <div class="invalid-feedback">Informe o nome (mín. 2 caracteres).</div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-12 col-sm-6">
+                    <label class="form-label">Início <span class="required">*</span></label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      name="start"
+                      ng-model="vacation.startDate"
+                      ng-class="{ 'is-invalid': vacationForm.$submitted && vacationForm.start.$invalid }"
+                      required
+                    />
+                    <div class="invalid-feedback">Selecione a data de início.</div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <label class="form-label">Fim <span class="required">*</span></label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      name="end"
+                      ng-model="vacation.endDate"
+                      ng-class="{ 'is-invalid': vacationForm.$submitted && (vacationForm.end.$invalid || dateRangeInvalid) }"
+                      required
+                    />
+                    <div class="invalid-feedback" ng-if="!dateRangeInvalid">Selecione a data de fim.</div>
+                    <div class="invalid-feedback" ng-if="dateRangeInvalid">Fim deve ser igual ou após o início.</div>
+                  </div>
+                </div>
+
+                <div class="mb-3 mt-3">
+                  <label class="form-label">Observações</label>
+                  <textarea class="form-control" rows="2" placeholder="Opcional" ng-model="vacation.notes"></textarea>
+                </div>
+
+                <div class="d-flex gap-2 mt-2">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Agendar
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" ng-click="resetVacationForm(vacationForm)">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Limpar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Férias Table -->
+        <div class="col-12 col-lg-7">
+          <div class="card h-100">
+            <div class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <strong>Próximas Férias</strong>
+                <span class="badge text-bg-primary">{{ upcomingVacationsCount() }} agendadas</span>
+              </div>
+              <div class="input-group input-group-sm" style="min-width: 260px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" placeholder="Buscar..." ng-model="vacSearchTerm" />
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle table-sm table-nowrap table-sticky mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="cursor-pointer" ng-click="setVacSort('name')">
+                        Funcionário
+                        <i class="bi" ng-class="{ 'bi-caret-down': vacSortKey==='name' && !vacReverse, 'bi-caret-up': vacSortKey==='name' && vacReverse }"></i>
+                      </th>
+                      <th class="cursor-pointer" ng-click="setVacSort('startDate')">
+                        Início
+                        <i class="bi" ng-class="{ 'bi-caret-down': vacSortKey==='startDate' && !vacReverse, 'bi-caret-up': vacSortKey==='startDate' && vacReverse }"></i>
+                      </th>
+                      <th>Fim</th>
+                      <th>Status</th>
+                      <th class="text-end" style="width: 120px;">Dias</th>
+                      <th style="width: 56px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-if="(vacations || []).length === 0">
+                      <td colspan="5" class="text-center text-secondary py-4">Sem férias registradas</td>
+                    </tr>
+                    <tr ng-repeat="v in vacations | filter:vacSearchTerm | filter:vacationUpcomingFilter | orderBy:vacSortExpression:vacReverse track by $index">
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="avatar avatar-sm">{{ getInitials(v.name) }}</div>
+                          <span class="fw-medium">{{ v.name }}</span>
+                        </div>
+                      </td>
+                      <td>{{ v.startDate | date:'dd/MM/yyyy' }}</td>
+                      <td>{{ v.endDate | date:'dd/MM/yyyy' }}</td>
+                      <td>
+                        <span class="badge rounded-pill" ng-class="vacationStatusClass(v)">{{ vacationStatus(v) }}</span>
+                      </td>
+                      <td class="text-end">{{ vacationDays(v.startDate, v.endDate) }}</td>
+                      <td class="text-end">
+                        <button class="btn btn-sm btn-outline-danger" title="Remover" ng-click="deleteVacation(v)">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AngularJS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular-messages.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular-animate.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular-sanitize.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- App -->
+    <script src="app.js"></script>
+  </body>
+  </html>
+
+
